@@ -1,0 +1,139 @@
+# ============================================================
+#  BobCore / tonysinke  .gitignore
+#  .NET 8 + CounterStrikeSharp 插件工程
+# ============================================================
+
+# ---------------- 构建产物 ----------------
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ll]og/
+[Ll]ogs/
+*.dll
+*.exe
+*.pdb
+*.mdb
+*.lib
+*.exp
+*.ilk
+*.obj
+*.o
+*.lo
+*.slo
+*.gch
+*.pch
+*.cache
+*.tlog
+*.lastbuildstate
+*.idb
+*.ipdb
+*.iobj
+*.deps.json
+*.runtimeconfig.json
+*.nupkg
+*.snupkg
+*.symbols.nupkg
+
+# ---------------- Visual Studio / Rider / VS Code ----------------
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.DotSettings.user
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.VC.db
+*.VC.opendb
+*.psess
+*.vsp
+*.vspx
+*.sap
+
+# ---------------- 测试与覆盖率 ----------------
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.VisualState.xml
+TestResult.xml
+coverage*.json
+coverage*.xml
+coverage*.info
+*.trx
+*.coverage
+*.coveragexml
+
+# ---------------- NuGet / 包还原 ----------------
+packages/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
+.nuget/
+
+# ---------------- 本项目运行时数据（插件会写出这些） ----------------
+cl_bob.log
+cl_bob_persist.cfg
+*.log
+*.bak
+*.dmp
+*.mdmp
+*.hdmp
+crashdump*.txt
+
+# 备份的旧版插件二进制
+*.dll.bak
+bak_*.dll
+*.158*.bak
+
+# ---------------- 本地私货：服务器环境 / 反编译 / 逆向中间件 ----------------
+client.dll
+*.vpk
+*.vtf
+*.vmt
+*.dem
+*.bsp
+*.nav
+depot_*/
+cs2*.ver
+ida_*.idb
+ida_*.i64
+*.til
+*.asm
+*.bin
+*.sigdb
+
+# 本地调试脚本（按需保留，自行改写规则）
+scratch/
+local/
+*.local.*
+*.private.*
+
+# ---------------- 操作系统 ----------------
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+__MACOSX/
+
+# ---------------- 临时文件 ----------------
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+*.orig
+*.rej
+*.part
+*.crdownload
