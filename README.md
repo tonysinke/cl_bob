@@ -162,4 +162,3 @@ README 中保留 cvar 表与行为说明即可 —— 使用者仍能自行按�
 
 MIT，见 [LICENSE](LICENSE)。
 
-*（内容由AI生成，仅供参考）*
