@@ -1,7 +1,16 @@
+# 换行归一化：Windows 批处理必须 CRLF，其余文本统一 LF 入库。
+# 目的：避免同一仓库里 CRLF/LF 混存导致 diff 噪声与 build.cmd 标签跳转异常。
 * text=auto eol=lf
 
-*.cs      text diff=csharp
-*.csproj  text
-*.md      text
-*.dll     binary
-*.pdb     binary
+*.cs        text diff=csharp eol=lf
+*.csproj    text eol=lf
+*.md        text eol=lf
+*.json      text eol=lf
+*.yml       text eol=lf
+
+*.cmd       text eol=crlf
+*.bat       text eol=crlf
+*.cfg       text eol=crlf
+
+*.dll       binary
+*.pdb       binary

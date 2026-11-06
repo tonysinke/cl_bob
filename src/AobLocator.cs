@@ -96,9 +96,9 @@ internal sealed class AobLocator
     }
 
     // ------------------------------------------------------------ 签名表
-    // 来源标注（详见说明文档 §签名表）：
-    //   [沿用]   = 直接沿用原插件硬编码字节（原 ENTRY_ORIG / SNAP_ORIG / RENDER_ORIG 等）
-    //   [重提]   = 本次针对当前 client.dll 重新提取（原插件无签名，或原签名不足以保证唯一）
+    // 来源标注（就在下面每条的注释里，别处没有单独的签名表文档）：
+    //   [沿用] = 直接沿用原插件硬编码字节（原 ENTRY_ORIG / SNAP_ORIG / RENDER_ORIG 等）
+    //   [重提] = 针对当前 client.dll 重新提取（原插件无签名，或原签名不足以保证唯一）
     private void BuildTable()
     {
         // ---- 手臂通道（ClBob v1.19.0：5 个 hook 点）
@@ -131,22 +131,10 @@ internal sealed class AobLocator
         Add("cvar.regcore", 0x110FAE0, "48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 18 55 41 54 41 55 41 56 41 57 48 8D 6C 24 D1");
         Add("cvar.getfloat", 0x110DA0, "40 53 48 83 EC 20 48 8B D9 E8 ?? ?? ?? ?? 48 85 C0 74 ?? F3 0F 10 00 48 83 C4 20 5B C3 48 8B 43 08 48 8B 48 08 F3 0F 10 01 48 83 C4 20 5B C3 CC 4C");
 
-        // ---- v1.33.0 左右手通道：m_bLeftHanded(pawn+0x2400) 唯一读取点 + 6 写入点 + 2 过渡时间戳
-        //   全量反汇编确认：读取点只有 1 处（置渲染标志），写入 6 处，过渡时间戳 2 处（hand.snap 与 hand.snapT 相邻）
-        Add("hand.render", 0x8ABE78, "80 BE 00 24 00 00 00 74 0A 41 83 4D 20 02");
-        // 快照应用：写字段 + 写过渡时间戳（同函数，两段分别 NOP）
-        Add("hand.snap", 0x82FAC4, "66 89 B7 00 24 00 00 48 8B 1C C8 89 B7 FC 23 00 00 48 89 B7 04 24 00 00");
-        Add("hand.snapT", 0x82FACF, "89 B7 FC 23 00 00 48 89 B7 04 24 00 00");
-        // cl_prefer_lefthanded 应用点
-        Add("hand.apply", 0x82FE21, "88 87 00 24 00 00 48 8B C7 49 8B E3 41 5F 41 5E 41 5D 41 5C 5F C3");
-        Add("hand.apply2", 0x846626, "88 83 00 24 00 00 E8 ?? ?? ?? ?? E9 ?? ?? ?? ??");
-        // switchhands
-        Add("hand.toggle", 0x868E79, "40 88 BB 00 24 00 00 48 8B 7C 24 30 48 83 C4 20 5B C3");
-        // switchhandsleft / switchhandsright
-        Add("hand.left", 0x868EEB, "C6 83 00 24 00 00 01 48 83 C4 20 5B C3");
-        Add("hand.right", 0x868F5B, "C6 83 00 24 00 00 00 48 83 C4 20 5B C3");
-        // 过渡时间戳（+0x23FC）
-        Add("hand.deadline", 0x5375B6, "F3 0F 11 80 FC 23 00 00 48 83 C4 20 5F C3");
+        // ---- 左右手通道已随 v1.42.0 撤除（cl_bob_hand / cl_hand 一并删除）。
+        //   原先这里还留着 9 条 hand.* 签名（render / snap / snapT / apply / apply2 / toggle / left / right /
+        //   deadline），没有任何调用方，但每次启动仍会被 ScanAll 全段扫描——纯属白烧时间，
+        //   且新版 client.dll 上必然打印一堆「0 处命中」，把真正的失配信息埋掉。v1.59.0 移除。
     }
 
     private void Add(string name, int baselineRva, string pattern)

@@ -1,6 +1,6 @@
 # BobCore
 
-CS2（Counter-Strike 2）视角武器晃动整形插件，基于 **CounterStrikeSharp**。
+**v1.59.0** · CS2（Counter-Strike 2）视角武器晃动整形插件，基于 **CounterStrikeSharp**。
 把原本写死在客户端里的 viewmodel bob（走路时武器/手臂晃动、开镜时镜框晃动）抽出来，交给插件按档位接管。
 
 两条互相独立的通道：
@@ -10,7 +10,9 @@ CS2（Counter-Strike 2）视角武器晃动整形插件，基于 **CounterStrike
 | 手臂 | `cl_bob` | 武器/手臂在屏幕上的晃动与位移 | `0` 原版 / `1` legacy 复刻 / `2` 完全不晃（位置冻结） |
 | 狙击镜 | `cl_bob_sniper` | 开镜后狙击镜黑框的晃动 | `0` 原版 / `1` legacy 复刻 / `2` 镜框完全静止 |
 
-> 定位方式：启动时用 AOB 签名在 `client.dll` 内找到 bob 计算函数与镜框偏置写入点，运行时以指令级 detour / cave 方式接管波形。
+> 定位方式：启动时先在 `client.dll` 的 `.text` 段扫描 AOB 签名，找到手臂 bob 计算函数、cvar 解析链与镜框绘制入口；
+> 另有 7 个「探针 / 偏置」站点使用固定 RVA + 原字节逐字节校验（不参与签名扫描，游戏更新后需重新测量）。
+> 运行时以指令级 detour / cave 方式接管波形。
 > **不修改磁盘上的 `client.dll`**，只在进程内存里临时改写指令页；进程退出即消失。
 
 ---
@@ -30,12 +32,15 @@ CS2（Counter-Strike 2）视角武器晃动整形插件，基于 **CounterStrike
 
 | 项目 | 要求 |
 |---|---|
-| 游戏 | CS2 独立服务器 / 本地 listen server（`-insecure`） |
+| 游戏 | 本地客户端（单机 listen server，建议 `-insecure`）；**专用服务器（srcds）无效** |
 | 插件框架 | [CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp) **1.0.284**（API 版本需与本插件编译时一致） |
 | 构建 | .NET 8 SDK |
 | 平台 | Windows x64（依赖 `kernel32` 的 `VirtualProtect` / `VirtualAlloc`） |
 
 > 签名与偏移是针对某个具体 `client.dll` 版本测量的，**游戏更新后大概率失效**（插件会打印定位失败并退化为原版行为）。
+>
+> 本插件改的是**客户端** `client.dll` 内的 viewmodel 变换与镜框偏置，只对本机画面生效。
+> 挂到专用服务器（`srcds`）上不会生效：服务器没有 `client.dll`，也不参与客户端渲染。
 
 ---
 
@@ -66,9 +71,25 @@ game\csgo\addons\counterstrikesharp\plugins\BobCore\
 
 ---
 
+## 启动开关
+
+插件注册一个自定义启动参数 `-bobautoload`（引擎不认识，会忽略；只有本插件读）：
+
+```bat
+cs2.exe -insecure -bobautoload
+```
+
+开启后，进图装配完成即自动 `disconnect`，用于「起图 → 装配 → 退到主界面」的半自动流程。
+不开这个参数就什么都不做，行为与之前完全一致。
+
+---
+
 ## 配置
 
 ### cvar 表
+
+> CS2 已移除原生 `cl_bob*` 系列，下表 cvar **全部由本插件自行注册**，其值只被本插件消费；
+> 不影响引擎自身，也不会与其它插件的同名注册冲突（已存在则复用并打日志）。
 
 | cvar | 默认 | 范围 | 说明 |
 |---|---|---|---|
@@ -93,11 +114,25 @@ set BOBCORE_ROOT=D:\cs2server
 
 回退顺序：`BOBCORE_ROOT` → 服务器根目录 → 插件自身目录。
 
+### 内置常量（不可配）
+
+这几个值编译期写死，源码里的注释说明了取值依据；要改只能改代码重编。
+
+| 常量 | 值 | 作用 |
+|---|---|---|
+| `M1_AMP_SCALE` | `0.50` | 1 档幅度总缩放：`vert` / `lat` 源头统一乘它（六条通道与镜框广播同缩），2 档与 0 档不受影响 |
+| `SCOPE_GAIN` | `10.0` | 镜框 1 档覆盖增益：`X←lat×4.0×10`、`Y←(vert-直流)×8.0×10` |
+| `SCOPE_LEGACY_UNIT_LAT` / `_VERT` | `4.0` / `8.0` | 镜框覆盖的单位换算，取原生抖动峰值 `X≈±3.1`、`Y≈±3.6` 对齐 |
+| `DIAG_FIXED` | `1` | 定位报告后台化（v1.23.5 起），启动必打一次 `[loc]`，不再注册 `cl_bob_diag` |
+| `BG2_*` | vert `0` / lat `0` / lower `-6` / cycle `0` / bobup `0` | 2 档独立参数源：幅度与波形全冻结、整体上抬 6；切到 2 档时不再读游戏内 cvar |
+
 ---
 
 ## 日志与排障
 
-`cl_bob.log` 常用行：
+`cl_bob.log` 每次启动重写；单文件超过 4 MB 时自动归档为 `cl_bob.log.1`（旧的 `.1` 被覆盖）后继续写，长时间挂机不会把盘写满。
+
+常用行：
 
 | 前缀 | 内容 |
 |---|---|
@@ -105,7 +140,9 @@ set BOBCORE_ROOT=D:\cs2server
 | `[cfg]` | cvar 注册 / 持久化回填 / 保存 |
 | `[arm]` | 手臂通道状态切换与参数来源（`BG2` 后台常量 / `cvar`） |
 | `[scope]` | 镜框通道状态与偏置写入 |
-| `beat` | 每帧统计：命中计数、相位、倍率等，用于定位「抖而不动 / 动而不抖」 |
+
+`beat` 不是独立前缀，而是 `[arm]` / `[scope]` 行里的固定字段（如 `beat=64Hz`、`beat.probe ...`），
+给的是每帧统计：命中计数、相位、倍率等，用于定位「抖而不动 / 动而不抖」。
 
 ---
 
@@ -128,7 +165,7 @@ set BOBCORE_ROOT=D:\cs2server
 ## 目录结构
 
 ```
-tonysinke/
+cl_bob/
 ├─ src/
 │  ├─ BobCore.cs          # 插件主体：签名定位、cave 构造、两条通道的状态机
 │  ├─ AobLocator.cs       # AOB 签名表与扫描/校验
